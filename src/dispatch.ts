@@ -55,7 +55,7 @@ export interface DispatchResult {
 export async function dispatch(
   config: Config,
   hook: Webhook,
-  deps: { send: Send; deduper: Deduper; metrics: Metrics },
+  deps: { send: Send; deduper: Deduper; metrics: Metrics; log?: (message: string) => void },
 ): Promise<DispatchResult> {
   let deduplicated = 0;
   const deliveries = plan(config, hook, (receiver, alert) => {
@@ -74,7 +74,8 @@ export async function dispatch(
         await deps.send(receiver.webhookUrl, d.message);
         result.sent.push(d.receiver);
         deps.metrics.notifications.inc({ receiver: d.receiver, result: "sent" });
-      } catch {
+      } catch (err) {
+        deps.log?.(`delivery to ${d.receiver} failed: ${(err as Error).message}`);
         for (const a of d.alerts) deps.deduper.forget(dedupKey(d.receiver, a));
         result.failed.push(d.receiver);
         deps.metrics.notifications.inc({ receiver: d.receiver, result: "failed" });
