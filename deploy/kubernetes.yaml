@@ -1,0 +1,96 @@
+# alert-router in the monitoring namespace. Create the secret first:
+#   kubectl -n monitoring create secret generic alert-router \
+#     --from-literal=ALERT_ROUTER_TOKEN="$(openssl rand -hex 24)" \
+#     --from-literal=SLACK_PLATFORM=https://hooks.slack.com/services/...   # one per receiver
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-router
+  namespace: monitoring
+data:
+  config.yaml: |
+    receivers:
+      - name: platform
+        slack: { webhook_url_env: SLACK_PLATFORM }
+    routes: []
+    default_receiver: platform
+    dedup_window: 10m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-router
+  namespace: monitoring
+  labels: { app.kubernetes.io/name: alert-router }
+spec:
+  # Deduplication is per replica; one replica is enough for a webhook relay,
+  # and Alertmanager retries while the pod is restarted.
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: alert-router }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: alert-router }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: alert-router
+          image: ghcr.io/ota-eita/alert-router:v0.1.0
+          imagePullPolicy: IfNotPresent
+          args: ["serve", "--config", "/etc/alert-router/config.yaml"]
+          envFrom:
+            - secretRef: { name: alert-router }
+          ports:
+            - { name: http, containerPort: 9095 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/alert-router, readOnly: true }
+      volumes:
+        - name: config
+          configMap: { name: alert-router }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-router
+  namespace: monitoring
+  labels: { app.kubernetes.io/name: alert-router }
+spec:
+  selector: { app.kubernetes.io/name: alert-router }
+  ports:
+    - { name: http, port: 9095, targetPort: http }
+---
+# Only Alertmanager (and Prometheus, for /metrics) may reach the router.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alert-router
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/name: alert-router }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - { key: app.kubernetes.io/name, operator: In, values: [alertmanager, prometheus] }
+      ports:
+        - { port: http }
