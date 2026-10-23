@@ -1,5 +1,6 @@
-# Build: bundle the service into a single file.
-FROM node:24-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
+# Build: bundle the service into a single file. The bundle is plain JavaScript,
+# so this stage runs on the build machine's platform even for multi-arch images.
+FROM --platform=$BUILDPLATFORM node:24-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 # Dependencies' install scripts never run.
