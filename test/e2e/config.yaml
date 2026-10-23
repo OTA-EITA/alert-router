@@ -1,0 +1,16 @@
+receivers:
+  - name: page
+    slack: { webhook_url_env: SLACK_PAGE }
+  - name: team
+    slack: { webhook_url_env: SLACK_TEAM }
+routes:
+  - match: { severity: critical }
+    receiver: page
+    continue: true
+  - match_re: { namespace: "payments.*" }
+    receiver: team
+default_receiver: team
+runbook_base_url: https://runbooks.example.com/
+dedup_window: 10m
+# The mock Slack listens on localhost in CI.
+allowed_webhook_hosts: [localhost]
