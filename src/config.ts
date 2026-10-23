@@ -57,8 +57,15 @@ export interface Config {
   dedupWindowMs: number;
 }
 
-/** Parses and validates the YAML config, resolving webhook URLs from the environment. */
-export function loadConfig(source: string, env: Record<string, string | undefined>): Config {
+/**
+ * Parses and validates the YAML config, resolving webhook URLs from the environment.
+ * With resolveSecrets: false (dry runs) the environment is not read and receivers get a placeholder URL.
+ */
+export function loadConfig(
+  source: string,
+  env: Record<string, string | undefined>,
+  opt: { resolveSecrets?: boolean } = {},
+): Config {
   const parsed = fileSchema.safeParse(parse(source));
   if (!parsed.success) {
     throw new Error(
@@ -72,7 +79,10 @@ export function loadConfig(source: string, env: Record<string, string | undefine
   const receivers = new Map<string, Receiver>();
   for (const r of file.receivers) {
     if (receivers.has(r.name)) errors.push(`receiver "${r.name}" is defined twice`);
-    const raw = env[r.slack.webhook_url_env];
+    const raw =
+      opt.resolveSecrets === false
+        ? `https://${file.allowed_webhook_hosts[0] ?? "hooks.slack.com"}/dry-run`
+        : env[r.slack.webhook_url_env];
     if (!raw) {
       errors.push(`receiver "${r.name}": environment variable ${r.slack.webhook_url_env} is not set`);
       continue;
