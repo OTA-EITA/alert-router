@@ -46,6 +46,8 @@ export function runbookUrl(alert: Alert, base: string | undefined): string | und
   if (!base || !name) return undefined;
   const slug = name
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    // Split an acronym from the next word: HTTPRequests -> HTTP-Requests.
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
     .replace(/[^A-Za-z0-9]+/g, "-")
     .toLowerCase();
   return new URL(encodeURIComponent(slug), base.endsWith("/") ? base : base + "/").href;
