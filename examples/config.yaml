@@ -1,0 +1,36 @@
+# Routes are tried in order; the first match wins unless it sets continue: true.
+# Alerts that match no route go to default_receiver, so nothing is dropped.
+receivers:
+  - name: platform-page
+    slack:
+      # Webhook URLs are secrets: the file only names the environment variable.
+      webhook_url_env: SLACK_PLATFORM_PAGE
+      mention: "<!subteam^S0123456789>" # on-call user group, only for firing alerts
+  - name: platform
+    slack:
+      webhook_url_env: SLACK_PLATFORM
+  - name: payments
+    slack:
+      webhook_url_env: SLACK_PAYMENTS
+  - name: catch-all
+    slack:
+      webhook_url_env: SLACK_CATCH_ALL
+
+routes:
+  # Every critical alert pages the platform on-call, and continues so the owning team is told too.
+  - match: { severity: critical }
+    receiver: platform-page
+    continue: true
+  - match_re: { namespace: "payments(-.*)?" }
+    receiver: payments
+  - match_re: { namespace: "kube-.*|monitoring|ingress-nginx" }
+    receiver: platform
+
+default_receiver: catch-all
+
+# Alerts without a runbook_url annotation link to <base>/<alertname in kebab case>.
+runbook_base_url: https://runbooks.example.com/alerts/
+
+# Alertmanager re-sends a group every repeat_interval and retries failures;
+# the same alert is not posted twice to a receiver within this window.
+dedup_window: 10m
