@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          # Always use the newest 24.x, not the runner's cached (possibly unpatched) Node.
+          check-latest: true
+          cache: npm
+      # Install scripts of dependencies never run; none of them need one.
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=moderate
+      - run: npm audit signatures
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run coverage
+      - run: npm run build
+      - name: dry run on the example
+        run: node dist/server.js route --config examples/config.yaml examples/alert.json
+
+  e2e:
+    # A real Alertmanager sends to the container image, which posts to a mock Slack over HTTPS.
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+      - run: docker build -t alert-router:e2e .
+      - run: test/e2e/run.sh
+
+  lockfile-guard:
+    # Checks package-lock.json for supply-chain risks with https://github.com/OTA-EITA/lockfile-guard,
+    # including a 7-day cooldown on newly published versions.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: OTA-EITA/lockfile-guard@f5a04e3deeb3926a41ee2011b6bdc2e8f58a7c0d # v0.1.0
+        id: guard
+        with:
+          fail-on: medium
+          # Reviewed: esbuild only verifies its platform binary, fsevents builds a macOS addon.
+          # CI installs with --ignore-scripts anyway.
+          allow-scripts: esbuild,fsevents
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        if: always()
+        with:
+          sarif_file: ${{ steps.guard.outputs.sarif-file }}
+          category: lockfile-guard
+
+  gha-guard:
+    # Audits this repository's workflows with https://github.com/OTA-EITA/gha-guard.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: OTA-EITA/gha-guard@647404df7b2c96877a2043a92e09382a1ee1dde9 # v0.1.2
+        id: guard
+        with:
+          fail-on: low
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        if: always()
+        with:
+          sarif_file: ${{ steps.guard.outputs.sarif-file }}
+          category: gha-guard
