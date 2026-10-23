@@ -13,12 +13,6 @@ export class Counter {
     this.values.set(key, (this.values.get(key) ?? 0) + by);
   }
 
-  get(labels: Record<string, string> = {}): number {
-    return (
-      this.values.get(this.labelNames.map((n) => `${n}="${escapeLabel(labels[n] ?? "")}"`).join(",")) ?? 0
-    );
-  }
-
   render(): string {
     const lines = [`# HELP ${this.name} ${this.help}`, `# TYPE ${this.name} counter`];
     for (const [key, v] of [...this.values].sort(([a], [b]) => a.localeCompare(b))) {
