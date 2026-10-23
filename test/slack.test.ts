@@ -26,6 +26,9 @@ describe("runbookUrl", () => {
     expect(runbookUrl(alert({ alertname: "HTTP5xxRate high" }), "https://rb.example.com/")).toBe(
       "https://rb.example.com/http5xx-rate-high",
     );
+    expect(runbookUrl(alert({ alertname: "HTTPRequestsHigh" }), "https://rb.example.com/")).toBe(
+      "https://rb.example.com/http-requests-high",
+    );
   });
 
   it("ignores non-http annotations and works without a base", () => {
