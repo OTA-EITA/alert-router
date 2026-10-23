@@ -1,0 +1,45 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"KubePodCrashLooping\"}",
+  "truncatedAlerts": 0,
+  "status": "firing",
+  "receiver": "alert-router",
+  "groupLabels": { "alertname": "KubePodCrashLooping" },
+  "commonLabels": { "alertname": "KubePodCrashLooping", "severity": "critical" },
+  "commonAnnotations": {},
+  "externalURL": "https://alertmanager.example.com",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "KubePodCrashLooping",
+        "severity": "critical",
+        "namespace": "payments-api",
+        "pod": "checkout-7d9f8b6c5-x2k4p",
+        "container": "app"
+      },
+      "annotations": {
+        "summary": "Pod payments-api/checkout-7d9f8b6c5-x2k4p (app) is in CrashLoopBackOff",
+        "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubepodcrashlooping"
+      },
+      "startsAt": "2026-10-23T01:58:00Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "https://prometheus.example.com/graph?g0.expr=kube_pod_container_status_waiting_reason",
+      "fingerprint": "a3f5c9e1b2d4f6a8"
+    },
+    {
+      "status": "resolved",
+      "labels": {
+        "alertname": "KubeDeploymentReplicasMismatch",
+        "severity": "warning",
+        "namespace": "monitoring",
+        "deployment": "grafana"
+      },
+      "annotations": { "summary": "Deployment monitoring/grafana has matched the expected replicas again" },
+      "startsAt": "2026-10-23T01:20:00Z",
+      "endsAt": "2026-10-23T01:55:00Z",
+      "generatorURL": "",
+      "fingerprint": "7c1e2d3f4a5b6c7d"
+    }
+  ]
+}
