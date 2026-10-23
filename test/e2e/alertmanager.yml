@@ -1,0 +1,15 @@
+route:
+  receiver: alert-router
+  group_by: [alertname]
+  group_wait: 1s
+  group_interval: 5s
+  repeat_interval: 1h
+receivers:
+  - name: alert-router
+    webhook_configs:
+      - url: http://localhost:9095/webhook
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/token
