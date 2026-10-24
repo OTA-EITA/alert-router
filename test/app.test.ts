@@ -79,6 +79,22 @@ describe("POST /webhook", () => {
     expect(s.sent).toHaveLength(3);
   });
 
+  it("delivers an alert that fires again after resolving (flapping)", async () => {
+    const s = setup();
+    const firing = alert({ namespace: "monitoring" });
+    await s.post(JSON.stringify(hook([firing])));
+    s.advance(60_000);
+    await s.post(JSON.stringify(hook([{ ...firing, status: "resolved" }])));
+    s.advance(60_000);
+    const again = await s.post(JSON.stringify(hook([firing])));
+    expect(await again.json()).toMatchObject({ sent: ["platform"], deduplicated: 0 });
+    expect(s.sent.map((x) => x.message.text)).toEqual([
+      "🔥 FIRING 1: TestAlert",
+      "✅ RESOLVED 1: TestAlert",
+      "🔥 FIRING 1: TestAlert",
+    ]);
+  });
+
   it("answers 502 on a failed delivery so Alertmanager retries only what failed", async () => {
     const s = setup([env.SLACK_PAYMENTS]);
     const body = JSON.stringify(hook([alert({ severity: "critical", namespace: "payments" })]));
