@@ -40,7 +40,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: alert-router
-          image: ghcr.io/ota-eita/alert-router:0.1.0
+          image: ghcr.io/ota-eita/alert-router:0.1.1
           imagePullPolicy: IfNotPresent
           args: ["serve", "--config", "/etc/alert-router/config.yaml"]
           envFrom:
