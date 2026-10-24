@@ -10,7 +10,7 @@ Alertmanager の Slack 連携をそのまま使うと、チームごとの recei
 ## できること
 
 - **ラベルでの振り分け**: `match`（完全一致）と `match_re`（Alertmanager と同じく前後を固定した正規表現）で送り先を決める。上から順に評価し、`continue: true` なら次のルートも評価する。どれにも当たらなければ `default_receiver` へ送るので、アラートが黙って消えない
-- **重複排除**: Alertmanager の再送（repeat_interval）やリトライ、冗長構成の Alertmanager からの二重送信を、送り先・fingerprint・状態ごとに `dedup_window` の間まとめる。解決（resolved）の通知は別扱いなので必ず届く
+- **重複排除**: Alertmanager の再送（repeat_interval）やリトライ、冗長構成の Alertmanager からの二重送信を、送り先・fingerprint・状態ごとに `dedup_window` の間まとめる。解決（resolved）の通知は別扱いなので必ず届き、解決後に再び発生した場合（フラッピング）も改めて通知する
 - **Runbook / Silence へのリンク**: `runbook_url` アノテーションがあればそれを、なければ `runbook_base_url` + アラート名（`KubePodCrashLooping` → `kube-pod-crash-looping`）をボタンにする。発生中のアラートには、ラベルを埋めた Silence 作成画面へのリンクも付ける
 - **dry-run**: 実際の webhook ペイロードで、どこに何が送られるかを Slack に送らずに確認できる
 - **メトリクス**: `/metrics` に受信数・送信結果・重複排除の件数を Prometheus 形式で出す
