@@ -59,7 +59,13 @@ export async function dispatch(
 ): Promise<DispatchResult> {
   let deduplicated = 0;
   const deliveries = plan(config, hook, (receiver, alert) => {
-    if (deps.deduper.firstSeen(dedupKey(receiver, alert))) return true;
+    if (deps.deduper.firstSeen(dedupKey(receiver, alert))) {
+      // A state change resets the other state, so an alert that fires again
+      // after resolving (flapping) is delivered instead of being deduplicated.
+      const other = alert.status === "firing" ? "resolved" : "firing";
+      deps.deduper.forget(dedupKey(receiver, { ...alert, status: other }));
+      return true;
+    }
     deduplicated++;
     deps.metrics.deduplicated.inc({ receiver });
     return false;
