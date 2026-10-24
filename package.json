@@ -1,6 +1,6 @@
 {
   "name": "alert-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Routes Alertmanager webhooks to Slack by labels, with deduplication, runbook links and a dry-run mode",
   "license": "MIT",
