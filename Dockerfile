@@ -10,7 +10,7 @@ COPY src ./src
 RUN npm run build
 
 # Run: distroless (no shell, no package manager) as a non-root user.
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:78f07ef1b5ea71ad7c055df15d0dd8997f2d288f9158623c4d4ae3d765b7d50d
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:a6c34457f6da4295807e051411c7783739c65b997a324fed14e4fa292615ae91
 COPY --from=build /src/dist/server.js /app/server.js
 USER nonroot
 EXPOSE 9095
